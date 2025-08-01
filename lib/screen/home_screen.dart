@@ -1,11 +1,8 @@
-// screens/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:movie_watchlist/database/database_helper.dart';
-import 'package:movie_watchlist/models/movie_model.dart';
-import 'package:movie_watchlist/screens/add_movie_screen.dart';
-import 'package:movie_watchlist/screens/edit_movie_screen.dart';
-import 'package:movie_watchlist/widgets/movie_card.dart';
-import 'package:movie_watchlist/widgets/search_bar.dart';
+import '../widgets/movies_card.dart';
+import '../widgets/search_bar.dart';
+import 'add_movies_screen.dart';
+import 'edit_movies_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,31 +12,38 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<List<Movie>> _moviesFuture;
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   String _searchQuery = '';
   String _filterStatus = 'All';
 
-  @override
-  void initState() {
-    super.initState();
-    _refreshMovies();
-  }
-
-  void _refreshMovies() {
-    setState(() {
-      if (_searchQuery.isNotEmpty) {
-        _moviesFuture = _dbHelper.searchMovies(_searchQuery);
-      } else if (_filterStatus != 'All') {
-        _moviesFuture = _dbHelper.getMoviesByStatus(_filterStatus);
-      } else {
-        _moviesFuture = _dbHelper.getAllMovies();
-      }
-    });
-  }
+  // Temporary mock data for UI testing
+  final List<Map<String, dynamic>> mockMovies = [
+    {
+      'id': 1,
+      'title': 'Inception',
+      'releaseYear': '2010',
+      'rating': 8.8,
+      'status': 'Watched',
+    },
+    {
+      'id': 2,
+      'title': 'Interstellar',
+      'releaseYear': '2014',
+      'rating': 8.6,
+      'status': 'Want to Watch',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final filteredMovies = mockMovies.where((movie) {
+      final matchesSearch = movie['title']
+          .toString()
+          .toLowerCase()
+          .contains(_searchQuery.toLowerCase());
+      final matchesStatus = _filterStatus == 'All' || movie['status'] == _filterStatus;
+      return matchesSearch && matchesStatus;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Movie Watchlist'),
@@ -47,7 +51,9 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _refreshMovies,
+            onPressed: () {
+              setState(() {}); // Just re-render
+            },
           ),
         ],
       ),
@@ -59,40 +65,28 @@ class _HomeScreenState extends State<HomeScreen> {
               onChanged: (query) {
                 setState(() {
                   _searchQuery = query;
-                  _refreshMovies();
                 });
               },
             ),
           ),
           _buildFilterChips(),
           Expanded(
-            child: FutureBuilder<List<Movie>>(
-              future: _moviesFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No movies found\nAdd some movies to your watchlist!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: snapshot.data!.length,
-                  itemBuilder: (context, index) {
-                    final movie = snapshot.data![index];
-                    return MovieCard(
-                      movie: movie,
-                      onEdit: () => _navigateToEditScreen(movie),
-                      onDelete: () => _deleteMovie(movie.id!),
-                    );
-                  },
+            child: filteredMovies.isEmpty
+                ? const Center(
+              child: Text(
+                'No movies found\nAdd some movies to your watchlist!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18),
+              ),
+            )
+                : ListView.builder(
+              itemCount: filteredMovies.length,
+              itemBuilder: (context, index) {
+                final movie = filteredMovies[index];
+                return MovieCard(
+                  movie: movie,
+                  onEdit: () => _navigateToEditScreen(movie),
+                  onDelete: () => _deleteMovie(movie['id']),
                 );
               },
             ),
@@ -119,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onSelected: (selected) {
                 setState(() {
                   _filterStatus = selected ? status : 'All';
-                  _refreshMovies();
                 });
               },
             ),
@@ -134,45 +127,25 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (context) => const AddMovieScreen()),
     );
-    _refreshMovies();
+    setState(() {}); // Re-render after returning
   }
 
-  void _navigateToEditScreen(Movie movie) async {
+  void _navigateToEditScreen(Map<String, dynamic> movie) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditMovieScreen(movie: movie),
       ),
     );
-    _refreshMovies();
+    setState(() {});
   }
 
-  void _deleteMovie(int id) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Movie'),
-        content: const Text('Are you sure you want to delete this movie?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+  void _deleteMovie(int id) {
+    setState(() {
+      mockMovies.removeWhere((movie) => movie['id'] == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Movie deleted successfully')),
     );
-
-    if (shouldDelete == true) {
-      await _dbHelper.deleteMovie(id);
-      _refreshMovies();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Movie deleted successfully')),
-      );
-    }
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:moviestacks/model/movie_model.dart';
 
 class AddMovieScreen extends StatefulWidget {
   const AddMovieScreen({super.key});
@@ -123,18 +122,15 @@ class _AddMovieScreenState extends State<AddMovieScreen> {
     );
   }
 
-  Future<void> _saveMovie() async {
+  void _saveMovie() {
     if (_formKey.currentState!.validate()) {
-      final movie = MovieModel(
-        title: _titleController.text,
-        releaseYear: _yearController.text,
-        rating: double.parse(_ratingController.text),
-        status: _status,
-      );
+      // This is where you can print or handle form data
+      print('Title: ${_titleController.text}');
+      print('Year: ${_yearController.text}');
+      print('Rating: ${_ratingController.text}');
+      print('Status: $_status');
 
-      await DatabaseHelper.instance.insertMovie(movie);
-      if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context); // Close the screen
     }
   }
 }

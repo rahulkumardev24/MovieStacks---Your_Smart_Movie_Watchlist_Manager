@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:moviestacks/model/movie_model.dart';
 
 class MovieCard extends StatelessWidget {
-  final Movie movie;
+  final MovieModel movie;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
