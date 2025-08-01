@@ -2,33 +2,34 @@ class MovieModel {
   final int? id;
   final String title;
   final String releaseYear;
-  final double? rating;
+  final double rating;
   final String status;
 
   MovieModel({
     this.id,
     required this.title,
-    required this.rating,
     required this.releaseYear,
+    required this.rating,
     required this.status,
   });
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
-      "id": id,
-      "title": title,
-      "rating": rating,
-      "releaseYear": releaseYear,
-      "status": status,
+      'id': id,
+      'title': title,
+      'release_year': releaseYear,
+      'rating': rating,
+      'status': status,
     };
   }
 
-  factory MovieModel.fromJson(Map<String, dynamic> json) {
+  factory MovieModel.fromMap(Map<String, dynamic> map) {
     return MovieModel(
-      title: json['title'] as String,
-      rating: json['rating'] as double,
-      releaseYear: json['releaseYear'] as String,
-      status: json['status'] as String,
+      id: map['id'] as int?,
+      title: map['title'] as String,
+      releaseYear: map['release_year'] as String,
+      rating: map['rating'] as double,
+      status: map['status'] as String,
     );
   }
 }
